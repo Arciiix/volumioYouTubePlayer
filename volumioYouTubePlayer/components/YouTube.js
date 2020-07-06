@@ -1,9 +1,9 @@
 import React from "react";
-import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
 import FloatingActionButton from "react-native-floating-action-button";
 
-import ip from "./ipConfig";
+import { ip } from "./ipConfig";
 
 export default class YouTube extends React.Component {
   constructor(props) {
@@ -11,6 +11,7 @@ export default class YouTube extends React.Component {
     this.state = {
       isDisabled: true,
       url: "",
+      webViewShowing: true,
     };
   }
   style = StyleSheet.create({
@@ -37,13 +38,19 @@ export default class YouTube extends React.Component {
     },
     headerTintColor: "#ffffff",
   };
+  componentDidMount() {
+    this.props.navigation.addListener("didFocus", () => {
+      this.setState({ webViewShowing: true }, this.forceUpdate);
+    });
+  }
   render() {
-    return (
-      <View style={this.style.container}>
-        <WebView
-          source={{ uri: "https://youtube.com" }}
-          style={this.style.webView}
-          injectedJavaScript={`
+    if (this.state.webViewShowing) {
+      return (
+        <View style={this.style.container}>
+          <WebView
+            source={{ uri: "https://youtube.com" }}
+            style={this.style.webView}
+            injectedJavaScript={`
     (function() {
       function wrap(fn) {
         return function wrapper() {
@@ -60,29 +67,32 @@ export default class YouTube extends React.Component {
     })();
     true;
   `}
-          onMessage={({ nativeEvent: state }) => {
-            if (state.data === "navigationStateChange") {
-              this.handleUrlChange(state.url);
-            }
-          }}
-        />
-        <View style={this.style.saveBtn}>
-          <FloatingActionButton
-            size={60}
-            text="Zapisz"
-            iconName="md-save"
-            iconType="Ionicons"
-            iconColor="#3bad95"
-            textColor="#3bad95"
-            shadowColor="#3bad95"
-            rippleColor="#3bad95"
-            textDisable={true}
-            disabled={this.state.isDisabled}
-            onPress={this.play.bind(this)}
+            onMessage={({ nativeEvent: state }) => {
+              if (state.data === "navigationStateChange") {
+                this.handleUrlChange(state.url);
+              }
+            }}
           />
+          <View style={this.style.saveBtn}>
+            <FloatingActionButton
+              size={60}
+              text="Zapisz"
+              iconName="md-save"
+              iconType="Ionicons"
+              iconColor="#3bad95"
+              textColor="#3bad95"
+              shadowColor="#3bad95"
+              rippleColor="#3bad95"
+              textDisable={true}
+              disabled={this.state.isDisabled}
+              onPress={this.play.bind(this)}
+            />
+          </View>
         </View>
-      </View>
-    );
+      );
+    } else {
+      return <Text></Text>;
+    }
   }
 
   handleUrlChange(url) {
@@ -93,8 +103,15 @@ export default class YouTube extends React.Component {
     }
   }
 
-  play() {
+  async play() {
     if (this.state.isDisabled !== false) return;
-    //.log(`${ip}/download?url=${encodeURI(this.state.url)}`);
+    let request = await fetch(
+      `${ip}/download?url=${encodeURI(this.state.url)}`
+    );
+    console.log(request.status);
+    if (request.status === 200) {
+      this.setState({ webViewShowing: false }, this.forceUpdate);
+      this.props.navigation.navigate("Download");
+    }
   }
 }

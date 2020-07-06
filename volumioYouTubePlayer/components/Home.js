@@ -38,7 +38,10 @@ export default class Home extends React.Component {
         >
           <Text style={this.style.buttonText}>YouTube</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={this.style.button}>
+        <TouchableOpacity
+          style={this.style.button}
+          onPress={() => this.props.navigation.navigate("Volumio")}
+        >
           <Text style={this.style.buttonText}>Volumio</Text>
         </TouchableOpacity>
       </View>
