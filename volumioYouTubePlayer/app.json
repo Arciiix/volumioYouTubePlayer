@@ -1,26 +1,26 @@
 {
   "expo": {
-    "name": "volumioYouTubePlayer",
-    "slug": "volumioYouTubePlayer",
+    "name": "Volumio",
+    "slug": "Volumio",
+    "platforms": ["android"],
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "androidStatusBar": {
+      "backgroundColor": "#75a3ff"
+    },
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#75a3ff"
     },
     "updates": {
       "fallbackToCacheTimeout": 0
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
-    "ios": {
-      "supportsTablet": true
+    "android": {
+      "package": "com.Arciiix.volumioYouTubePlayer",
+      "backgroundColor": "#75a3ff"
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    }
+    "assetBundlePatterns": ["**/*"]
   }
 }
