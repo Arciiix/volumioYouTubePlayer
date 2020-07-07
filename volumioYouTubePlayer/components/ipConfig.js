@@ -1,5 +1,5 @@
 //DEV
-const ip = "http://192.168.0.120:9696";
+const ip = "http://10.249.20.105:7000";
 //DEV
 const volumioIp = "http://10.249.20.140";
 export { ip, volumioIp };

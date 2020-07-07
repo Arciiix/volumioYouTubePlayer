@@ -13,6 +13,16 @@ const fetch = require("node-fetch");
 const volumioIp = "http://10.249.20.140";
 const nasName = "Artur";
 
+const socketioClient = require("socket.io-client");
+const volumioSocket = socketioClient(`${volumioIp}`);
+
+app.use(express.static("./"));
+
+volumioSocket.emit("getState");
+volumioSocket.on("pushState", (data) => {
+  console.log(data);
+});
+
 let YD = new YoutubeMp3Downloader({
   ffmpegPath: ffmpegPath,
   outputPath: "./Music",
@@ -26,13 +36,12 @@ app.get("/download", (req, res) => {
   let id = getVideoId(req.query.url);
   if (!id) return res.sendStatus(400);
   res.sendStatus(200);
-  console.log("Started");
+  console.log("Started downloading a track with url " + req.query.url);
   startDownloading(id);
 });
 
 function startDownloading(id) {
   YD.download(id);
-  console.log("downloaded?");
   YD.on("progress", (percent) => {
     console.log(percent);
     progress = Math.floor(percent.progress.percentage);
@@ -46,13 +55,13 @@ function startDownloading(id) {
       }, 1500);
       return;
     }
-
+    console.log("Finished downloading the track");
     io.sockets.emit("finished");
     await play(data.videoTitle);
   });
 
   YD.on("error", (error) => {
-    console.log(error);
+    console.log("ERROR: " + error);
     //Load component in the app first, then send the error
     setTimeout(() => {
       io.sockets.emit("error");
@@ -63,17 +72,31 @@ function startDownloading(id) {
 async function play(title) {
   //DEV
   //Get the current playing track uri, because it'll add to the queue after the track
-  //Stop the playback
-  await fetch(`${volumioIp}/api/v1/commands/?cmd=stop`);
-  //Clear the queue
-  await fetch(`${volumioIp}/api/v1/commands/?cmd=clearQueue`);
-  //Add the following track to queue
-  //DEV
-  //socket here
-  //Play
-  await fetch(`${volumioIp}/api/v1/commands/?cmd=play`);
-  //DEV
-  //Add the previous track to the queue
+  let stateReq = await fetch(`${volumioIp}/api/v1/getState`);
+  let currUri = await (await stateReq.json()).uri;
+  //Rescan the library to find out the new track
+  await volumioSocket.emit("rescanDb"); //undocumentated
+  setTimeout(async () => {
+    //Stop the playback
+    await fetch(`${volumioIp}/api/v1/commands/?cmd=stop`);
+    //Clear the queue
+    await fetch(`${volumioIp}/api/v1/commands/?cmd=clearQueue`);
+    //Add the following track to queue
+    volumioSocket.emit("addToQueue", {
+      uri: `music-library/NAS/${nasName}/${title}.mp3`,
+    });
+    //Play the track
+    setTimeout(async () => {
+      await fetch(`${volumioIp}/api/v1/commands/?cmd=play`);
+      console.log("Played the track");
+    }, 1000);
+    //Add the previous track to the queue
+    setTimeout(async () => {
+      volumioSocket.emit("addToQueue", {
+        uri: currUri,
+      });
+    }, 2000);
+  }, 5000);
 }
 
 function getVideoId(url) {
