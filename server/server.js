@@ -53,7 +53,6 @@ app.get("/setVolume", async (req, res) => {
 function startDownloading(id) {
   YD.download(id);
   YD.on("progress", (percent) => {
-    console.log(percent);
     progress = Math.floor(percent.progress.percentage);
     io.sockets.emit("progress", progress);
   });
@@ -98,14 +97,14 @@ async function play(title) {
     //Play the track
     setTimeout(async () => {
       await fetch(`${volumioIp}/api/v1/commands/?cmd=play`);
-      console.log("Played the track");
-    }, 1000);
+    }, 1500);
     //Add the previous track to the queue
     setTimeout(async () => {
       volumioSocket.emit("addToQueue", {
         uri: currUri,
       });
     }, 2000);
+    console.log("Played the track");
   }, 5000);
 }
 
