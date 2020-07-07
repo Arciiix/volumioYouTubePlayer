@@ -18,11 +18,6 @@ const volumioSocket = socketioClient(`${volumioIp}`);
 
 app.use(express.static("./"));
 
-volumioSocket.emit("getState");
-volumioSocket.on("pushState", (data) => {
-  console.log(data);
-});
-
 let YD = new YoutubeMp3Downloader({
   ffmpegPath: ffmpegPath,
   outputPath: "./Music",
@@ -38,6 +33,21 @@ app.get("/download", (req, res) => {
   res.sendStatus(200);
   console.log("Started downloading a track with url " + req.query.url);
   startDownloading(id);
+});
+
+app.get("/getVolume", async (req, res) => {
+  let stateReq = await fetch(`${volumioIp}/api/v1/getState`);
+  let currVolume = await (await stateReq.json()).volume;
+  res.send({ volume: currVolume });
+  console.log(`Current volume: ${currVolume}`);
+});
+
+app.get("/setVolume", async (req, res) => {
+  let volume = req.query.volume;
+  if (!volume || volume > 100 || volume < 0) return res.sendStatus(400);
+  res.sendStatus(200);
+  await fetch(`${volumioIp}/api/v1/commands/?cmd=volume&volume=${volume}`);
+  console.log(`Changed current volume to ${volume}`);
 });
 
 function startDownloading(id) {

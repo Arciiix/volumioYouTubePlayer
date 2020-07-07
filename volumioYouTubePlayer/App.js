@@ -6,6 +6,7 @@ import Home from "./components/Home";
 import YouTube from "./components/YouTube";
 import Download from "./components/Download";
 import Volumio from "./components/Volumio";
+import Volume from "./components/Volume";
 
 const AppNavigator = createStackNavigator(
   {
@@ -13,6 +14,7 @@ const AppNavigator = createStackNavigator(
     YouTube: YouTube,
     Download: Download,
     Volumio: Volumio,
+    Volume: Volume,
   },
   {
     initialRouteName: "Home",

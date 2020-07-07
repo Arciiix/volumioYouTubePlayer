@@ -12,13 +12,13 @@ export default class Home extends React.Component {
       backgroundColor: "#75a3ff",
     },
     button: {
-      backgroundColor: "#43b5b5",
       width: "90%",
       height: "10%",
       textAlign: "center",
       display: "flex",
       justifyContent: "center",
       marginBottom: 20,
+      borderRadius: 10,
     },
     buttonText: {
       color: "#ffffff",
@@ -33,16 +33,22 @@ export default class Home extends React.Component {
     return (
       <View style={this.style.container}>
         <TouchableOpacity
-          style={this.style.button}
+          style={[this.style.button, { backgroundColor: "#c4302b" }]}
           onPress={() => this.props.navigation.navigate("YouTube")}
         >
           <Text style={this.style.buttonText}>YouTube</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={this.style.button}
+          style={[this.style.button, { backgroundColor: "#2aa1a1" }]}
           onPress={() => this.props.navigation.navigate("Volumio")}
         >
           <Text style={this.style.buttonText}>Volumio</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[this.style.button, { backgroundColor: "#d16c19" }]}
+          onPress={() => this.props.navigation.navigate("Volume")}
+        >
+          <Text style={this.style.buttonText}>Głośność</Text>
         </TouchableOpacity>
       </View>
     );

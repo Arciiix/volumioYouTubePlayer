@@ -108,7 +108,6 @@ export default class YouTube extends React.Component {
     let request = await fetch(
       `${ip}/download?url=${encodeURI(this.state.url)}`
     );
-    console.log(request.status);
     if (request.status === 200) {
       this.setState({ webViewShowing: false }, this.forceUpdate);
       this.props.navigation.navigate("Download");
