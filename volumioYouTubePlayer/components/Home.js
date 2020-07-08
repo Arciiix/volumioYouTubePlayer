@@ -50,6 +50,12 @@ export default class Home extends React.Component {
         >
           <Text style={this.style.buttonText}>Głośność</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[this.style.button, { backgroundColor: "#3060e3" }]}
+          onPress={() => this.props.navigation.navigate("Microphone")}
+        >
+          <Text style={this.style.buttonText}>Nagrywanie</Text>
+        </TouchableOpacity>
       </View>
     );
   }
