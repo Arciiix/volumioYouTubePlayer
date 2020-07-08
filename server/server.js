@@ -109,8 +109,13 @@ async function play(title) {
 }
 
 function getVideoId(url) {
+  /*
   let index = url.indexOf("watch?v=");
   return url.slice(index + 8, url.length);
+  */
+  let regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+  let match = url.match(regExp);
+  return match && match[7].length == 11 ? match[7] : false;
 }
 
 const server = app.listen(PORT, () => {
