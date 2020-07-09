@@ -8,6 +8,8 @@ let currProgress = 0;
 
 const shell = require("shelljs");
 const ffmpegPath = shell.which("ffmpeg").stdout;
+const ffmpeg = require("fluent-ffmpeg");
+ffmpeg.setFfmpegPath(ffmpegPath);
 
 const fetch = require("node-fetch");
 const volumioIp = "http://10.249.20.140";
@@ -16,7 +18,11 @@ const nasName = "Artur";
 const socketioClient = require("socket.io-client");
 const volumioSocket = socketioClient(`${volumioIp}`);
 
+const path = require("path");
+const fs = require("fs");
+
 app.use(express.static("./"));
+const multiparty = require("multiparty");
 
 let YD = new YoutubeMp3Downloader({
   ffmpegPath: ffmpegPath,
@@ -25,6 +31,9 @@ let YD = new YoutubeMp3Downloader({
   queueParallelism: 5, // How many parallel downloads/encodes should be started?
   progressTimeout: 1000,
 });
+
+let recordingsCount = 0; //Added this to avoid spamming with recordings
+const dailyRecordingsLimit = 100;
 
 app.get("/download", (req, res) => {
   if (!req.query.url) return res.sendStatus(400);
@@ -49,6 +58,59 @@ app.get("/setVolume", async (req, res) => {
   await fetch(`${volumioIp}/api/v1/commands/?cmd=volume&volume=${volume}`);
   console.log(`Changed current volume to ${volume}`);
 });
+
+app.post("/recording", async (req, res) => {
+  recordingsCount++;
+  //Avoid spamming
+  if (recordingsCount > dailyRecordingsLimit) return res.sendStatus(503);
+  let form = new multiparty.Form({ uploadDir: "./Music" });
+  let filePath = "";
+  await new Promise((resolve, reject) => {
+    form.parse(req, function (err, fields, files) {
+      filePath = files.recording[0].path;
+      resolve();
+    });
+  });
+  if (!filePath) return;
+  res.sendStatus(200);
+  let date = parseDate(new Date());
+  let newPath = path.join("Music", `${date}.m4a`);
+
+  fs.renameSync(filePath, newPath);
+
+  let outputOptions = [
+    "-metadata",
+    "title=Nagranie głosowe",
+    "-metadata",
+    `artist=${parseDate(new Date(), true, {
+      hour12: false,
+      minute: "2-digit",
+      hour: "2-digit",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    })}`,
+  ];
+
+  ffmpeg(newPath)
+    .audioFilter("volume=2.5")
+    .outputOptions(...outputOptions)
+    .save(path.join("Music", `${date}.mp3`));
+
+  let title = newPath.split("\\").pop().split("/").pop().replace(".m4a", "");
+  setTimeout(async () => {
+    await play(title);
+    fs.unlinkSync(newPath);
+  }, 3000);
+});
+
+function parseDate(date, toLocal, options) {
+  if (toLocal) {
+    return date.toLocaleDateString("pl-PL", options);
+  } else {
+    return date.toISOString().replace(/[T:-]/g, "").replace(/\..+/, "");
+  }
+}
 
 function startDownloading(id) {
   YD.download(id);
@@ -79,33 +141,42 @@ function startDownloading(id) {
 }
 
 async function play(title) {
-  //DEV
+  /* currently disabled DEV
   //Get the current playing track uri, because it'll add to the queue after the track
   let stateReq = await fetch(`${volumioIp}/api/v1/getState`);
   let currUri = await (await stateReq.json()).uri;
+  */
   //Rescan the library to find out the new track
   await volumioSocket.emit("rescanDb"); //undocumentated
   setTimeout(async () => {
     //Stop the playback
     await fetch(`${volumioIp}/api/v1/commands/?cmd=stop`);
-    //Clear the queue
-    await fetch(`${volumioIp}/api/v1/commands/?cmd=clearQueue`);
-    //Add the following track to queue
-    volumioSocket.emit("addToQueue", {
-      uri: `music-library/NAS/${nasName}/${title}.mp3`,
-    });
+    setTimeout(async () => {
+      //Clear the queue
+      await fetch(`${volumioIp}/api/v1/commands/?cmd=clearQueue`);
+    }, 500);
+
+    setTimeout(() => {
+      //Add the following track to queue
+      volumioSocket.emit("addToQueue", {
+        uri: `music-library/NAS/${nasName}/${title}.mp3`,
+      });
+    }, 1000);
+
     //Play the track
     setTimeout(async () => {
       await fetch(`${volumioIp}/api/v1/commands/?cmd=play`);
-    }, 1500);
+    }, 2000);
+    /* currently disabled DEV
     //Add the previous track to the queue
     setTimeout(async () => {
       volumioSocket.emit("addToQueue", {
         uri: currUri,
       });
     }, 2000);
+    */
     console.log("Played the track");
-  }, 5000);
+  }, 6500);
 }
 
 function getVideoId(url) {
@@ -117,6 +188,13 @@ function getVideoId(url) {
   let match = url.match(regExp);
   return match && match[7].length == 11 ? match[7] : false;
 }
+
+function renewTheLimit() {
+  recordingsCount = 0;
+  console.log("Renewed the daily recordings limit");
+}
+
+setInterval(renewTheLimit, 1000 * 60 * 60 * 24);
 
 const server = app.listen(PORT, () => {
   console.log(`App has started on port ${PORT}`);
